@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}智能推荐 - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="pref-page">
+    <!-- 用户画像头部 -->
+    <div class="pref-header">
+        <div class="pref-header-left">
+            <h1>🎯 为你推荐</h1>
+            <p>基于你的评分、喜欢、收藏和浏览历史，智能分析偏好并推荐电影</p>
+        </div>
+        <div class="pref-header-stats">
+            <div class="pref-stat-badge">
+                <span class="pref-stat-num">{{ profile.signal_summary.ratings }}</span>
+                <span class="pref-stat-lbl">评分</span>
+            </div>
+            <div class="pref-stat-badge">
+                <span class="pref-stat-num">{{ profile.signal_summary.likes }}</span>
+                <span class="pref-stat-lbl">喜欢</span>
+            </div>
+            <div class="pref-stat-badge">
+                <span class="pref-stat-num">{{ profile.signal_summary.favorites }}</span>
+                <span class="pref-stat-lbl">收藏</span>
+            </div>
+            <div class="pref-stat-badge">
+                <span class="pref-stat-num">{{ profile.signal_summary.history }}</span>
+                <span class="pref-stat-lbl">浏览</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="pref-layout">
+        <!-- 左侧: 推荐结果 -->
+        <div class="pref-main">
+            {% if profile.total_interactions == 0 %}
+            <div class="pref-empty">
+                <div class="pref-empty-icon">📭</div>
+                <h2>暂无足够的偏好数据</h2>
+                <p>去给电影评分、点击喜欢或收藏，系统将为你生成个性化推荐</p>
+                <a href="/" class="action-btn primary">🎬 去发现电影</a>
+            </div>
+            <div class="detail-section">
+                <h2 class="section-title">🔥 热门高分推荐</h2>
+                <div class="movie-grid">
+                    {% for movie in recommendations[:12] %}
+                    <a href="/movie/{{ movie.id }}" class="movie-card-link">
+                        <div class="movie-card">
+                            <div class="movie-poster">
+                                <div class="no-poster">🎬</div>
+                                <div class="movie-rating-badge">{{ "%.1f"|format(movie.rating) if movie.rating else 'N/A' }}</div>
+                            </div>
+                            <div class="movie-info">
+                                <h3 class="movie-title" title="{{ movie.title }}">{{ movie.title }}</h3>
+                                <p class="movie-meta">
+                                    <span class="movie-genre">{{ movie.genres[:3]|join(' · ') }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <!-- 推荐算法标签 -->
+            <div class="pref-algo-info">
+                <span class="algo-tag als">🧠 Spark ALS协同过滤 (30%)</span>
+                <span class="algo-tag graph">🕸️ 图算法推荐 (30%)</span>
+                <span class="algo-tag content">📝 TF-IDF内容 (25%)</span>
+                <span class="algo-tag genre">🏷️ 类型偏好 (15%)</span>
+                <span class="algo-note">四路融合 · 综合排序</span>
+            </div>
+
+            <h2 class="section-title">📋 推荐结果 <span class="count-badge">{{ recommendations|length }}部</span></h2>
+
+            <!-- 推荐列表 -->
+            <div class="pref-reco-list">
+                {% for movie in recommendations %}
+                <div class="pref-reco-card" onclick="location.href='/movie/{{ movie.id }}'">
+                    <div class="pref-reco-rank">{{ loop.index }}</div>
+                    <div class="pref-reco-body">
+                        <div class="pref-reco-title">{{ movie.title }}</div>
+                        <div class="pref-reco-meta">
+                            <span>{{ movie.genres[:3]|join(' · ') }}</span>
+                            {% if movie.country %}
+                            <span> · {{ movie.country.split('/')[0].strip() }}</span>
+                            {% endif %}
+                            {% if movie.release_date %}
+                            <span> · {{ movie.release_date[:4] }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="pref-reco-score-bar">
+                            <div class="score-bar-fill" style="width:{{ (movie.score * 100)|int }}%"></div>
+                        </div>
+                        <div class="pref-reco-detail">
+                            <span class="reco-detail-item">综合得分: <strong>{{ "%.1f"|format(movie.score * 100) }}</strong></span>
+                            <span class="reco-detail-item">豆瓣: {{ movie.rating }}</span>
+                        </div>
+                    </div>
+                    <div class="pref-reco-reasons">
+                        {% for reason in movie.reasons %}
+                        <span class="reason-tag">{{ reason }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="pref-reco-score">
+                        <span class="reco-big-score">{{ "%.1f"|format(movie.score * 100) }}</span>
+                        <span class="reco-score-unit">分</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 右侧: 用户画像面板 -->
+        <div class="pref-sidebar">
+            <!-- 偏好类型 -->
+            <div class="pref-panel">
+                <h3 class="pref-panel-title">🏷️ 偏好类型</h3>
+                {% if top_genres %}
+                <div class="pref-genre-list">
+                    {% for genre, score in top_genres %}
+                    <div class="pref-genre-item">
+                        <span class="pref-genre-name">{{ genre }}</span>
+                        <div class="pref-genre-bar">
+                            <div class="pref-genre-fill" style="width:{{ (score / top_genres[0][1] * 100)|int }}%"></div>
+                        </div>
+                        <span class="pref-genre-val">{{ "%.1f"|format(score) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="pref-empty-text">暂无数据，多互动后会显示</p>
+                {% endif %}
+            </div>
+
+            <!-- 偏好年代 -->
+            <div class="pref-panel">
+                <h3 class="pref-panel-title">📅 偏好年代</h3>
+                {% if top_decades %}
+                <div class="pref-tag-cloud">
+                    {% for decade, count in top_decades %}
+                    <span class="pref-cloud-tag" style="font-size:{{ 13 + count * 3 }}px;opacity:{{ 0.5 + count / top_decades[0][1] * 0.5 }};">
+                        {{ decade }} ({{ count }})
+                    </span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="pref-empty-text">暂无数据</p>
+                {% endif %}
+            </div>
+
+            <!-- 偏好地区 -->
+            <div class="pref-panel">
+                <h3 class="pref-panel-title">🌍 偏好地区</h3>
+                {% if top_countries %}
+                <div class="pref-country-list">
+                    {% for country, score in top_countries %}
+                    <span class="pref-country-tag">{{ country.split('/')[0].strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="pref-empty-text">暂无数据</p>
+                {% endif %}
+            </div>
+
+            <!-- 推荐算法说明 -->
+            <div class="pref-panel pref-algo-panel">
+                <h3 class="pref-panel-title">⚙️ 推荐算法</h3>
+                <div class="algo-explain">
+                    <p><strong>Spark ALS协同过滤</strong><br>
+                    <small>基于Spark MLlib交替最小二乘法，从物品隐因子空间发现相似模式</small></p>
+                    <p><strong>图算法推荐</strong><br>
+                    <small>Personalized PageRank + Louvain社区检测 + 共同邻居相似度，基于电影知识图谱(类型/导演/演员)的关系推理</small></p>
+                    <p><strong>TF-IDF内容推荐</strong><br>
+                    <small>文本特征相似度匹配，找出内容相近的电影</small></p>
+                    <p><strong>类型偏好匹配</strong><br>
+                    <small>分析你的类型偏好分布，匹配高契合度电影</small></p>
+                    <p style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                        <small>💡 更多互动 + 图关系推理 = 更精准推荐</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

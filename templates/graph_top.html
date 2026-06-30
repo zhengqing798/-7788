@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}🔗 图分析 - PageRank电影{% endblock %}
+
+{% block content %}
+<div class="top-page">
+    <div class="top-header">
+        <h1>🔗 图算法分析中心</h1>
+        <p>基于知识图谱的多维电影分析 | {{ graph_stats.total_nodes }}节点 · {{ graph_stats.total_edges }}边 · {{ graph_stats.num_communities }}社区</p>
+    </div>
+
+    <!-- 图统计卡片 -->
+    <div class="dash-stats-row">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🕸️</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ graph_stats.total_nodes }}</div>
+                <div class="dash-stat-label">图节点数</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🎬</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ graph_stats.movie_nodes }}</div>
+                <div class="dash-stat-label">电影节点</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🔗</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ graph_stats.total_edges }}</div>
+                <div class="dash-stat-label">关系边</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🎭</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ graph_stats.num_communities }}</div>
+                <div class="dash-stat-label">Louvain社区</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">📊</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ graph_stats.avg_degree }}</div>
+                <div class="dash-stat-label">平均度数</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">📐</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ "%.5f"|format(graph_stats.density) }}</div>
+                <div class="dash-stat-label">图密度</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图节点类型分布 -->
+    <div class="detail-section" style="margin-bottom:24px;">
+        <div class="section-header">
+            <h2 class="section-title">🕸️ 知识图谱节点分布</h2>
+        </div>
+        <div class="node-type-bar">
+            <div class="node-type-segment movie-seg" style="flex: {{ graph_stats.movie_nodes }}" title="电影节点: {{ graph_stats.movie_nodes }}">
+                🎬 {{ graph_stats.movie_nodes }}
+            </div>
+            <div class="node-type-segment actor-seg" style="flex: {{ graph_stats.actor_nodes }}" title="演员节点: {{ graph_stats.actor_nodes }}">
+                🌟 {{ graph_stats.actor_nodes }}
+            </div>
+            <div class="node-type-segment director-seg" style="flex: {{ graph_stats.director_nodes }}" title="导演节点: {{ graph_stats.director_nodes }}">
+                🎥 {{ graph_stats.director_nodes }}
+            </div>
+            <div class="node-type-segment genre-seg" style="flex: {{ graph_stats.genre_nodes }}" title="类型节点: {{ graph_stats.genre_nodes }}">
+                🏷️ {{ graph_stats.genre_nodes }}
+            </div>
+        </div>
+    </div>
+
+    <!-- 双栏布局 -->
+    <div class="graph-two-col">
+        <!-- PageRank排名 -->
+        <div class="detail-section">
+            <div class="section-header">
+                <h2 class="section-title">🏅 PageRank 电影影响力排名</h2>
+                <span class="algo-badge">图随机游走算法</span>
+            </div>
+            <p class="algo-desc">
+                PageRank通过图的全局链接结构迭代计算节点重要性。一部电影关联的演员、导演、类型越多，且关联节点本身越重要，其PageRank得分越高。
+            </p>
+            <div class="top-list">
+                {% for movie in pagerank_movies[:20] %}
+                <a href="/movie/{{ movie.id }}" class="top-item-link">
+                    <div class="top-item">
+                        <div class="top-rank">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}<span style="color:#666">{{ loop.index }}</span>{% endif %}
+                        </div>
+                        <div class="top-poster">
+                            {% if movie.poster_local_path %}
+                            <img src="{{ url_for('static', filename=movie.poster_local_path.replace('\\', '/')) }}"
+                                 alt="{{ movie.title }}" loading="lazy"
+                                 onerror="this.style.display='none'">
+                            {% endif %}
+                        </div>
+                        <div class="top-info">
+                            <h3>{{ movie.title }}</h3>
+                            <p class="top-genre">{{ movie.genre }}</p>
+                            <div class="mini-bar-container">
+                                <div class="mini-bar" style="width:{{ (movie.pagerank_score * 50000)|int if movie.pagerank_score < 0.002 else 100 }}%"></div>
+                            </div>
+                            <p style="font-size:11px;color:#888;">PR: {{ "%.6f"|format(movie.pagerank_score) }}</p>
+                        </div>
+                        <div class="top-rating">
+                            <span class="top-rating-score">{{ "%.1f"|format(movie.rating) }}</span>
+                            <span>⭐</span>
+                        </div>
+                        <div class="top-actions">
+                            <a href="/recommend/{{ movie.id }}" class="mini-btn" onclick="event.stopPropagation()" title="查看推荐">🎯</a>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 图度数排名 -->
+        <div class="detail-section">
+            <div class="section-header">
+                <h2 class="section-title">🌟 图度数最高电影 (关联最丰富)</h2>
+                <span class="algo-badge">节点度数分析</span>
+            </div>
+            <p class="algo-desc">
+                度数表示电影节点在图中拥有的直接连接数（演员+导演+类型+国家）。度数越高，说明这部电影的人员和类型关联越丰富，在图中处于枢纽位置。
+            </p>
+            <div class="top-list">
+                {% for m in graph_stats.top_connected_movies[:20] %}
+                <a href="/movie/{{ m.id }}" class="top-item-link">
+                    <div class="top-item">
+                        <div class="top-rank">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}<span style="color:#666">{{ loop.index }}</span>{% endif %}
+                        </div>
+                        <div class="top-info" style="flex:1;">
+                            <h3>{{ m.title }}</h3>
+                            <p class="top-genre">{{ m.genre }}</p>
+                            <div class="mini-bar-container">
+                                <div class="mini-bar degree-bar" style="width:{{ (m.degree / graph_stats.top_connected_movies[0].degree * 100)|int if graph_stats.top_connected_movies else 0 }}%"></div>
+                            </div>
+                            <p style="font-size:11px;color:#888;">度数: {{ m.degree }}</p>
+                        </div>
+                        <div class="top-rating">
+                            <span class="top-rating-score">{{ "%.1f"|format(m.rating) }}</span>
+                            <span>⭐</span>
+                        </div>
+                        <div class="top-actions">
+                            <a href="/recommend/{{ m.id }}" class="mini-btn" onclick="event.stopPropagation()" title="查看推荐">🎯</a>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- PageRank Top 10 全局排名 -->
+    <div class="detail-section" style="margin-top:24px;">
+        <div class="section-header">
+            <h2 class="section-title">🏆 全局PageRank TOP10</h2>
+            <span class="algo-badge">包含非电影节点</span>
+        </div>
+        <div class="pagerank-top10-grid">
+            {% for item in graph_stats.top_pagerank[:10] %}
+            <div class="pr-card">
+                <div class="pr-rank">#{{ loop.index }}</div>
+                <div class="pr-title">{{ item.title }}</div>
+                <div class="pr-score">{{ "%.6f"|format(item.pagerank) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}数据导入 - 管理员{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-header">
+        <h1>📥 数据导入管理</h1>
+        <p>上传新数据或重载现有数据</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}" style="margin-bottom:16px;">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <!-- 上传文件 -->
+        <div class="admin-section">
+            <h2>📤 上传电影数据文件</h2>
+            <p style="color:#999;font-size:13px;margin-bottom:16px;">
+                支持 JSON (.json) 和 CSV (.csv) 格式<br>
+                导入后将自动清除推荐引擎缓存
+            </p>
+            <form method="POST" action="/admin/import/upload" enctype="multipart/form-data">
+                <div class="upload-zone" id="uploadZone"
+                     onclick="document.getElementById('fileInput').click()"
+                     ondrop="handleDrop(event)" ondragover="handleDragOver(event)">
+                    <div class="upload-icon">📁</div>
+                    <p class="upload-text">拖放文件到此处 或 点击选择</p>
+                    <p class="upload-hint">支持 .json / .csv</p>
+                    <input type="file" id="fileInput" name="datafile"
+                           accept=".json,.csv" style="display:none;"
+                           onchange="handleFileSelect(this)">
+                    <div id="fileInfo" class="upload-file-info" style="display:none;"></div>
+                </div>
+                <button type="submit" id="submitBtn" class="auth-btn" style="width:100%;margin-top:12px;" disabled>
+                    上传并导入
+                </button>
+            </form>
+        </div>
+
+        <!-- 数据管理 -->
+        <div class="admin-section">
+            <h2>⚙️ 数据管理</h2>
+            <p style="color:#999;font-size:13px;margin-bottom:16px;">
+                重新加载数据并重建推荐引擎<br>
+                注意：此操作会清除所有缓存
+            </p>
+
+            <div class="action-card">
+                <div class="ac-icon">🔄</div>
+                <div class="ac-info">
+                    <h4>重新加载数据</h4>
+                    <p>从当前数据文件重新加载所有电影，并重建TF-IDF和ALS推荐引擎</p>
+                </div>
+                <form method="POST" action="/admin/import/reload" style="margin-left:auto;">
+                    <button type="submit" class="auth-btn" style="padding:10px 24px;"
+                            onclick="return confirm('确定重新加载数据并重建引擎？此操作会清除缓存。')">
+                        重载数据
+                    </button>
+                </form>
+            </div>
+
+            <div class="action-card" style="margin-top:12px;">
+                <div class="ac-icon">🗑️</div>
+                <div class="ac-info">
+                    <h4>清除缓存</h4>
+                    <p>清除推荐引擎的相似度矩阵缓存，下次启动时自动重建</p>
+                </div>
+                <form method="POST" action="/admin/import/reload" style="margin-left:auto;">
+                    <button type="submit" class="auth-btn" style="padding:10px 24px;background:#666;"
+                            onclick="return confirm('确定清除所有缓存？')">
+                        清除缓存
+                    </button>
+                </form>
+            </div>
+
+            <div class="action-card" style="margin-top:12px;background:rgba(229,9,20,0.05);border-color:rgba(229,9,20,0.2);">
+                <div class="ac-icon">⚠️</div>
+                <div class="ac-info">
+                    <h4 style="color:#e50914;">重启服务器</h4>
+                    <p>导入新数据并清除缓存后，需要重启服务器才能使所有更改生效</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const submitBtn = document.getElementById('submitBtn');
+
+function handleFileSelect(input) {
+    const file = input.files[0];
+    if (file) {
+        fileInfo.innerHTML = `<strong>已选择：</strong>${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+        fileInfo.style.display = 'block';
+        submitBtn.disabled = false;
+        uploadZone.style.borderColor = '#46d369';
+    }
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    uploadZone.style.borderColor = '#4a9eff';
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    uploadZone.style.borderColor = '#333';
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        handleFileSelect(fileInput);
+    }
+}
+</script>
+{% endblock %}

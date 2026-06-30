@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}登录 - 电影推荐系统{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>🎬 登录</h1>
+            <p>登录后即可评分和评论电影</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" name="username" required placeholder="请输入用户名"
+                       class="form-input" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" name="password" required placeholder="请输入密码"
+                       class="form-input" autocomplete="current-password">
+            </div>
+            <button type="submit" class="auth-btn">登 录</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>还没有账号？<a href="/register">立即注册 →</a></p>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

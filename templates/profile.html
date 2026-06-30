@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}个人中心 - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            <span>👤</span>
+        </div>
+        <div class="profile-info">
+            <h1>{{ user.username }}</h1>
+            <p>{{ user.email or '未设置邮箱' }} | {{ user.role == 'admin' and '👑 管理员' or '🎬 用户' }}</p>
+            <p class="profile-date">注册时间：{{ user.created_at }}</p>
+        </div>
+        <div class="profile-stats">
+            <div class="profile-stat">
+                <span class="ps-number">{{ stats.rating_count }}</span>
+                <span class="ps-label">评分</span>
+            </div>
+            <div class="profile-stat">
+                <span class="ps-number">{{ stats.review_count }}</span>
+                <span class="ps-label">评论</span>
+            </div>
+            <div class="profile-stat">
+                <span class="ps-number">{{ likes|length }}</span>
+                <span class="ps-label">喜欢</span>
+            </div>
+            <div class="profile-stat">
+                <span class="ps-number">{{ favorites|length }}</span>
+                <span class="ps-label">收藏</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 我的评分 -->
+    <div class="detail-section">
+        <h2 class="section-title">⭐ 我的评分 ({{ ratings|length }})</h2>
+        {% if ratings %}
+        <div class="profile-list" id="ratingsList">
+            {% for r in ratings %}
+            <div class="profile-item-row" id="prating-{{ r.movie_id }}">
+                <a href="/movie/{{ r.movie_id }}" class="profile-item">
+                    <span class="profile-item-score">{{ r.score }}⭐</span>
+                    <span class="profile-item-title">{{ r.movie_title }}</span>
+                    <span class="profile-item-date">{{ r.updated_at[:10] }}</span>
+                </a>
+                <button class="profile-delete-btn" onclick="deleteMyRating('{{ r.movie_id }}')" title="删除评分">🗑️</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>还没有评分过电影</p></div>
+        {% endif %}
+    </div>
+
+    <!-- 我的评论 -->
+    <div class="detail-section">
+        <h2 class="section-title">💬 我的评论 ({{ reviews|length }})</h2>
+        {% if reviews %}
+        <div class="profile-reviews" id="reviewsList">
+            {% for r in reviews %}
+            <div class="profile-review-card" id="pr-review-{{ r.id }}">
+                <div class="prc-header">
+                    <a href="/movie/{{ r.movie_id }}" class="prc-movie">{{ r.movie_title }}</a>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="prc-date">{{ r.created_at[:16] }}</span>
+                        <button class="review-delete-btn" onclick="deleteMyReview({{ r.id }})" title="删除评论">🗑️</button>
+                    </div>
+                </div>
+                <p class="prc-content">{{ r.content }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>还没有发表过评论</p></div>
+        {% endif %}
+    </div>
+
+    <!-- 我的喜欢 -->
+    <div class="detail-section">
+        <h2 class="section-title">❤️ 我的喜欢 ({{ likes|length }})</h2>
+        {% if likes %}
+        <div class="profile-list" id="likesList">
+            {% for item in likes %}
+            <a href="/movie/{{ item.movie_id }}" class="profile-item">
+                <span class="profile-item-score">❤️</span>
+                <span class="profile-item-title">{{ item.movie_title }}</span>
+                <span class="profile-item-date">{{ item.created_at[:10] }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>还没有喜欢过电影</p></div>
+        {% endif %}
+    </div>
+
+    <!-- 我的收藏 -->
+    <div class="detail-section">
+        <h2 class="section-title">⭐ 我的收藏 ({{ favorites|length }})</h2>
+        {% if favorites %}
+        <div class="profile-list" id="favsList">
+            {% for item in favorites %}
+            <a href="/movie/{{ item.movie_id }}" class="profile-item">
+                <span class="profile-item-score">⭐</span>
+                <span class="profile-item-title">{{ item.movie_title }}</span>
+                <span class="profile-item-date">{{ item.created_at[:10] }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>还没有收藏过电影</p></div>
+        {% endif %}
+    </div>
+
+    <!-- 浏览历史 -->
+    <div class="detail-section">
+        <h2 class="section-title">🕐 浏览历史 ({{ history|length }})</h2>
+        {% if history %}
+        <div class="profile-list" id="historyList">
+            {% for item in history %}
+            <div class="profile-item-row" id="phistory-{{ item.id }}">
+                <a href="/movie/{{ item.movie_id }}" class="profile-item">
+                    <span class="profile-item-score">👁️</span>
+                    <span class="profile-item-title">{{ item.movie_title }}</span>
+                    <span class="profile-item-date">{{ item.viewed_at[:16] }}</span>
+                </a>
+                <button class="profile-delete-btn" onclick="deleteMyHistory({{ item.id }})" title="删除记录">🗑️</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>还没有浏览过电影</p></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 删除评分
+async function deleteMyRating(movieId) {
+    if (!confirm('确定删除这条评分？')) return;
+    try {
+        const res = await fetch('/api/rating/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({movie_id: movieId})
+        });
+        const data = await res.json();
+        if (data.success) {
+            const el = document.getElementById('prating-' + movieId);
+            if (el) el.remove();
+            location.reload();
+        } else {
+            alert(data.error || '删除失败');
+        }
+    } catch (err) {
+        alert('网络错误');
+    }
+}
+
+// 删除评论
+async function deleteMyReview(reviewId) {
+    if (!confirm('确定删除这条评论？')) return;
+    try {
+        const res = await fetch(`/api/review/${reviewId}/delete`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const el = document.getElementById('pr-review-' + reviewId);
+            if (el) el.remove();
+            location.reload();
+        } else {
+            alert(data.error || '删除失败');
+        }
+    } catch (err) {
+        alert('网络错误');
+    }
+}
+
+// 删除浏览历史
+async function deleteMyHistory(historyId) {
+    if (!confirm('确定删除这条浏览记录？')) return;
+    try {
+        const res = await fetch(`/api/history/delete/${historyId}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const el = document.getElementById('phistory-' + historyId);
+            if (el) el.remove();
+            // 更新计数
+            const list = document.getElementById('historyList');
+            const remaining = list ? list.querySelectorAll('.profile-item-row').length : 0;
+            const titleEl = document.querySelector('.detail-section:nth-last-of-type(1) .section-title');
+            // 这里简单处理：更新计数和空状态
+            location.reload();
+        } else {
+            alert(data.error || '删除失败');
+        }
+    } catch (err) {
+        alert('网络错误');
+    }
+}
+</script>
+{% endblock %}

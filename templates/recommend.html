@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}推荐结果 - {{ movie.title }}{% endblock %}
+
+{% block content %}
+<div class="recommend-page">
+    <div class="breadcrumb">
+        <a href="/">首页</a> <span>›</span>
+        <a href="/movie/{{ movie.id }}">{{ movie.title }}</a> <span>›</span>
+        <span>智能推荐</span>
+    </div>
+
+    <div class="seed-movie">
+        <div class="seed-poster">
+            {% if movie.poster_local_path %}
+            <img src="{{ url_for('static', filename=movie.poster_local_path.replace('\\', '/')) }}"
+                 alt="{{ movie.title }}" onerror="this.style.display='none'">
+            {% endif %}
+        </div>
+        <div class="seed-info">
+            <h2>基于「{{ movie.title }}」的智能推荐</h2>
+            <p>⭐ {{ movie.rating }} | {{ movie.genre }} | {{ movie.release_date[:4] if movie.release_date else '' }}</p>
+            <p class="seed-note">以下展示2种推荐算法结果对比</p>
+        </div>
+    </div>
+
+    <div id="loading" class="loading-spinner">
+        <div class="spinner"></div>
+        <p>🧠 AI推荐引擎计算中...</p>
+    </div>
+
+    <div id="recommend-results" style="display:none;">
+        <div class="recommend-tabs">
+            <button class="tab-btn active" data-tab="tab-als">⚡ ALS协同过滤推荐</button>
+            <button class="tab-btn" data-tab="tab-content">📝 TF-IDF内容推荐</button>
+        </div>
+
+        <div id="tab-als" class="tab-content active">
+            <h3 class="section-title">Spark MLlib ALS 协同过滤 <span class="method-badge">交替最小二乘法</span></h3>
+            <p class="tab-desc">基于用户评分矩阵的潜在因子模型，通过ALS算法学习用户和物品的隐含特征向量，发现品味相似的用户群体。</p>
+            <div id="rec-als" class="movie-grid"></div>
+        </div>
+        <div id="tab-content" class="tab-content">
+            <h3 class="section-title">TF-IDF 内容推荐 <span class="method-badge">文本特征相似度</span></h3>
+            <p class="tab-desc">基于电影类型、剧情简介的文本特征向量化，通过余弦相似度找到内容最相似的电影。</p>
+            <div id="rec-content" class="movie-grid"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        document.getElementById(this.dataset.tab).classList.add('active');
+    });
+});
+
+fetch('/api/recommend/all/{{ movie.id }}')
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('recommend-results').style.display = 'block';
+
+        if (data.als_collaborative && data.als_collaborative.length > 0) {
+            renderCards('rec-als', data.als_collaborative);
+        } else {
+            document.getElementById('rec-als').innerHTML = '<p style="color:#999;padding:20px;">ALS模型尚未就绪</p>';
+        }
+        if (data.content_based) renderCards('rec-content', data.content_based);
+    })
+    .catch(err => {
+        document.getElementById('loading').innerHTML = '<p style="color:#e50914">加载失败: ' + err.message + '</p>';
+    });
+
+function renderCards(containerId, movies) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = movies.map(m => `
+        <a href="/movie/${m.id}" class="movie-card-link">
+            <div class="movie-card">
+                <div class="movie-poster">
+                    ${m.poster_local_path
+                        ? `<img src="/static/${m.poster_local_path.replace(/\\/g, '/')}"
+                             alt="${m.title}" loading="lazy"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                           <div class="no-poster" style="display:none;">🎬</div>`
+                        : '<div class="no-poster">🎬</div>'}
+                    <div class="movie-rating-badge">${m.rating ? m.rating.toFixed(1) : 'N/A'}</div>
+                </div>
+                <div class="movie-info">
+                    <h3 class="movie-title">${m.title}</h3>
+                    <p class="movie-meta"><span class="movie-genre">${(m.genre || '').slice(0, 25)}</span></p>
+                    <div class="similarity-bar">
+                        <div class="similarity-fill" style="width:${Math.min(100, (m.similarity || 0) * 100)}%"></div>
+                    </div>
+                    <span class="similarity-text">${m.method || ''}</span>
+                </div>
+            </div>
+        </a>
+    `).join('');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} - {% if ptype == 'director' %}导演{% else %}演员{% endif %}作品{% endblock %}
+
+{% block content %}
+<div class="person-page">
+    <div class="breadcrumb">
+        <a href="/">首页</a> <span>›</span>
+        <span>{{ name }}</span>
+    </div>
+
+    <div class="person-header">
+        <div class="person-avatar">
+            {% if ptype == 'director' %}🎬{% else %}🌟{% endif %}
+        </div>
+        <div class="person-info">
+            <h1 class="person-name">{{ name }}</h1>
+            <p class="person-role">
+                <span class="person-type-badge {{ 'director' if ptype == 'director' else 'actor' }}">
+                    {{ '🎬 导演' if ptype == 'director' else '🌟 演员' }}
+                </span>
+                <span class="person-count">共 {{ total }} 部作品</span>
+            </p>
+        </div>
+    </div>
+
+    {% if movies %}
+    <div class="person-movies-grid">
+        {% for movie in movies %}
+        <a href="/movie/{{ movie.id }}" class="movie-card-link">
+            <div class="movie-card">
+                <div class="movie-poster">
+                    {% if movie.poster_local_path %}
+                    <img src="{{ url_for('static', filename=movie.poster_local_path.replace('\\', '/')) }}"
+                         alt="{{ movie.title }}" loading="lazy"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="no-poster" style="display:none;">🎬</div>
+                    {% else %}
+                    <div class="no-poster">🎬</div>
+                    {% endif %}
+                    <div class="movie-rating-badge">{{ "%.1f"|format(movie.rating) if movie.rating else 'N/A' }}</div>
+                </div>
+                <div class="movie-info">
+                    <h3 class="movie-title">{{ movie.title }}</h3>
+                    <p class="movie-meta-small">{{ movie.genre[:30] }}</p>
+                    <p class="movie-meta-small">{{ movie.release_date[:10] if movie.release_date else '' }}</p>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="person-empty">
+        <p>😕 未找到 {{ name }} 的相关作品</p>
+        <a href="javascript:history.back()" class="action-btn">← 返回</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

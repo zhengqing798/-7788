@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% block title %}数据可视化大屏 - 电影分析{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <!-- 顶部统计卡片 -->
+    <div class="dash-stats-row">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🎬</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ statistics.total_movies }}</div>
+                <div class="dash-stat-label">电影总数</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">⭐</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ statistics.avg_rating }}</div>
+                <div class="dash-stat-label">平均评分</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">📅</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ statistics.year_range }}</div>
+                <div class="dash-stat-label">年份跨度</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🎭</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ statistics.genre_count }}</div>
+                <div class="dash-stat-label">电影类型</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🌍</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ statistics.country_count }}</div>
+                <div class="dash-stat-label">制片国家</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">⏱️</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ statistics.avg_runtime }}min</div>
+                <div class="dash-stat-label">平均片长</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="dash-grid">
+        <!-- 评分分布 -->
+        <div class="dash-card">
+            <h3 class="dash-card-title">📊 评分分布直方图</h3>
+            <div id="chart-rating-dist" class="dash-chart"></div>
+        </div>
+
+        <!-- 类型分布 -->
+        <div class="dash-card">
+            <h3 class="dash-card-title">🎭 电影类型分布</h3>
+            <div id="chart-genre-dist" class="dash-chart"></div>
+        </div>
+
+        <!-- 年份趋势 -->
+        <div class="dash-card dash-card-wide">
+            <h3 class="dash-card-title">📅 年份趋势 (数量 & 评分)</h3>
+            <div id="chart-year-trend" class="dash-chart"></div>
+        </div>
+
+        <!-- 国家分布 -->
+        <div class="dash-card">
+            <h3 class="dash-card-title">🌍 制片国家/地区 TOP15</h3>
+            <div id="chart-country" class="dash-chart"></div>
+        </div>
+
+        <!-- 片长分布 -->
+        <div class="dash-card">
+            <h3 class="dash-card-title">⏱️ 片长分布</h3>
+            <div id="chart-runtime" class="dash-chart"></div>
+        </div>
+
+        <!-- 导演排名 -->
+        <div class="dash-card">
+            <h3 class="dash-card-title">🎬 导演作品数量 TOP20</h3>
+            <div id="chart-director" class="dash-chart"></div>
+        </div>
+
+        <!-- 语言分布 -->
+        <div class="dash-card">
+            <h3 class="dash-card-title">🗣️ 语言分布</h3>
+            <div id="chart-language" class="dash-chart"></div>
+        </div>
+
+        <!-- 演员排名 -->
+        <div class="dash-card">
+            <h3 class="dash-card-title">🌟 演员参演数量 TOP20</h3>
+            <div id="chart-actor" class="dash-chart"></div>
+        </div>
+
+        <!-- 评分 vs 片长 -->
+        <div class="dash-card dash-card-wide">
+            <h3 class="dash-card-title">📈 评分 vs 片长 散点图</h3>
+            <div id="chart-scatter" class="dash-chart"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+// ============================================================
+// ECharts 可视化 - 数据大屏
+// ============================================================
+const chartTheme = {
+    textStyle: { color: '#e5e5e5' },
+    // 暗色主题配色
+};
+
+// 通用初始化
+function initChart(domId) {
+    const dom = document.getElementById(domId);
+    if (!dom) return null;
+    const chart = echarts.init(dom, 'dark');
+    // 响应式
+    window.addEventListener('resize', () => chart.resize());
+    return chart;
+}
+
+// 加载所有数据
+fetch('/api/dashboard/full_report')
+    .then(res => res.json())
+    .then(data => {
+        renderRatingDist(data.rating_distribution);
+        renderGenreDist(data.genre_distribution);
+        renderYearTrend(data.year_trend);
+        renderCountryDist(data.country_distribution);
+        renderRuntimeDist(data.runtime_distribution);
+        renderDirectorRank(data.director_ranking);
+        renderLanguageDist(data.language_distribution);
+        renderActorRank(data.actor_ranking);
+        renderScatter(data.rating_vs_runtime);
+    });
+
+// 1. 评分分布
+function renderRatingDist(data) {
+    const chart = initChart('chart-rating-dist');
+    if (!chart) return;
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '8%', right: '8%', bottom: '10%', top: '5%' },
+        xAxis: { data: data.labels, axisLabel: { rotate: 30, fontSize: 11 } },
+        yAxis: { name: '电影数量' },
+        series: [{
+            type: 'bar', data: data.values,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#e50914' },
+                    { offset: 1, color: '#4a0e12' }
+                ]),
+                borderRadius: [6, 6, 0, 0]
+            },
+            emphasis: { itemStyle: { color: '#ff4444' } }
+        }],
+        // 标注线
+        markLine: {
+            silent: true,
+            symbol: 'none',
+            label: { formatter: '均值: {c}' },
+            data: [{ xAxis: data.avg.toFixed(1), name: '平均分' }],
+            lineStyle: { color: '#ffd700', type: 'dashed' }
+        }
+    });
+}
+
+// 2. 类型分布
+function renderGenreDist(data) {
+    const chart = initChart('chart-genre-dist');
+    if (!chart) return;
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '15%', right: '10%', bottom: '5%', top: '8%' },
+        xAxis: { type: 'value', name: '电影数量' },
+        yAxis: { type: 'category', data: data.labels.reverse(),
+                 axisLabel: { fontSize: 12 }, inverse: true },
+        series: [{
+            type: 'bar', data: data.values.reverse(),
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                    { offset: 0, color: '#4a9eff' },
+                    { offset: 1, color: '#1a3a5c' }
+                ]),
+                borderRadius: [0, 6, 6, 0]
+            },
+            label: { show: true, position: 'right', fontSize: 11,
+                     formatter: p => p.value }
+        }]
+    });
+}
+
+// 3. 年份趋势
+function renderYearTrend(data) {
+    const chart = initChart('chart-year-trend');
+    if (!chart) return;
+    // 过滤2000年以后的数据以聚焦
+    const startIdx = data.years.findIndex(y => y >= 2000);
+    const years = data.years.slice(startIdx);
+    const counts = data.counts.slice(startIdx);
+    const ratings = data.avg_ratings.slice(startIdx);
+
+    chart.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data: ['电影数量', '平均评分'], top: 5, textStyle: { color: '#e5e5e5' } },
+        grid: { left: '8%', right: '8%', bottom: '10%', top: '15%' },
+        xAxis: { data: years, axisLabel: { rotate: 45, fontSize: 10 } },
+        yAxis: [
+            { type: 'value', name: '数量' },
+            { type: 'value', name: '评分', min: 5, max: 9 }
+        ],
+        series: [
+            {
+                name: '电影数量', type: 'bar', yAxisIndex: 0,
+                data: counts,
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: '#46d369' }, { offset: 1, color: '#0f2f17' }
+                    ]),
+                    borderRadius: [4, 4, 0, 0]
+                }
+            },
+            {
+                name: '平均评分', type: 'line', yAxisIndex: 1,
+                data: ratings,
+                lineStyle: { color: '#ffd700', width: 2 },
+                itemStyle: { color: '#ffd700' },
+                symbol: 'circle', symbolSize: 4
+            }
+        ]
+    });
+}
+
+// 4. 国家分布
+function renderCountryDist(data) {
+    const chart = initChart('chart-country');
+    if (!chart) return;
+    chart.setOption({
+        tooltip: { trigger: 'item', formatter: '{b}: {c} 部 ({d}%)' },
+        series: [{
+            type: 'pie',
+            radius: ['45%', '75%'],
+            center: ['50%', '55%'],
+            itemStyle: { borderRadius: 6, borderColor: '#141414', borderWidth: 3 },
+            label: { fontSize: 11, formatter: '{b}\n{d}%' },
+            emphasis: { label: { fontSize: 16, fontWeight: 'bold' } },
+            data: data.labels.map((l, i) => ({ name: l, value: data.values[i] }))
+        }],
+        color: ['#e50914', '#4a9eff', '#46d369', '#ffd700', '#ff6b6b',
+                '#845ef7', '#20c997', '#f06595', '#339af0', '#ff922b',
+                '#5c7cfa', '#94d82d', '#fcc419', '#ff8787', '#748ffc']
+    });
+}
+
+// 5. 片长分布
+function renderRuntimeDist(data) {
+    const chart = initChart('chart-runtime');
+    if (!chart) return;
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '8%', right: '8%', bottom: '10%', top: '5%' },
+        xAxis: { data: data.labels, axisLabel: { rotate: 45, fontSize: 10 } },
+        yAxis: { name: '电影数量' },
+        series: [{
+            type: 'bar', data: data.values,
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: '#ff922b' }, { offset: 1, color: '#3d1f08' }
+                ]),
+                borderRadius: [6, 6, 0, 0]
+            }
+        }]
+    });
+}
+
+// 6. 导演排名
+function renderDirectorRank(data) {
+    const chart = initChart('chart-director');
+    if (!chart) return;
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '15%', right: '10%', bottom: '5%', top: '5%' },
+        xAxis: { type: 'value', name: '作品数' },
+        yAxis: { type: 'category', data: data.labels.reverse(),
+                 axisLabel: { fontSize: 10 }, inverse: true },
+        series: [{
+            type: 'bar', data: data.values.reverse(),
+            itemStyle: { color: '#845ef7', borderRadius: [0, 6, 6, 0] },
+            label: { show: true, position: 'right', fontSize: 10 }
+        }]
+    });
+}
+
+// 7. 语言分布
+function renderLanguageDist(data) {
+    const chart = initChart('chart-language');
+    if (!chart) return;
+    chart.setOption({
+        tooltip: { trigger: 'item' },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '55%'],
+            roseType: 'area',
+            itemStyle: { borderRadius: 4 },
+            data: data.labels.map((l, i) => ({ name: l, value: data.values[i] }))
+        }],
+        color: ['#e50914', '#4a9eff', '#46d369', '#ffd700', '#ff6b6b',
+                '#845ef7', '#20c997', '#f06595', '#339af0', '#ff922b',
+                '#5c7cfa', '#94d82d', '#fcc419', '#ff8787', '#748ffc']
+    });
+}
+
+// 8. 演员排名
+function renderActorRank(data) {
+    const chart = initChart('chart-actor');
+    if (!chart) return;
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '15%', right: '10%', bottom: '5%', top: '5%' },
+        xAxis: { type: 'value', name: '参演数量' },
+        yAxis: { type: 'category', data: data.labels.reverse(),
+                 axisLabel: { fontSize: 10 }, inverse: true },
+        series: [{
+            type: 'bar', data: data.values.reverse(),
+            itemStyle: { color: '#20c997', borderRadius: [0, 6, 6, 0] },
+            label: { show: true, position: 'right', fontSize: 10 }
+        }]
+    });
+}
+
+// 9. 评分 vs 片长 散点图
+function renderScatter(data) {
+    const chart = initChart('chart-scatter');
+    if (!chart) return;
+    if (!data.points || data.points.length === 0) return;
+
+    chart.setOption({
+        tooltip: {
+            trigger: 'item',
+            formatter: p => `<b>${p.value[2]}</b><br/>片长: ${p.value[0]}分钟<br/>评分: ${p.value[1]}<br/>类型: ${p.value[3]}`
+        },
+        grid: { left: '8%', right: '8%', bottom: '10%', top: '5%' },
+        xAxis: { type: 'value', name: '片长(分钟)' },
+        yAxis: { type: 'value', name: '评分', min: 0, max: 10 },
+        series: [{
+            type: 'scatter',
+            data: data.points.map(p => [p.x, p.y, p.title, p.genre]),
+            symbolSize: 6,
+            itemStyle: {
+                color: new echarts.graphic.RadialGradient(0.4, 0.3, 1, [
+                    { offset: 0, color: '#e50914' },
+                    { offset: 1, color: '#4a0e12' }
+                ]),
+                opacity: 0.6
+            }
+        }]
+    });
+}
+</script>
+{% endblock %}

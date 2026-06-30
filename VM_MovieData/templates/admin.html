@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}管理员后台{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-header">
+        <h1>👑 管理员后台</h1>
+        <p>系统管理面板</p>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="dash-stats-row">
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">👥</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ stats.total_users }}</div>
+                <div class="dash-stat-label">总用户</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">🟢</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ stats.active_users }}</div>
+                <div class="dash-stat-label">活跃用户</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">⭐</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ stats.total_ratings }}</div>
+                <div class="dash-stat-label">总评分</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">💬</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ stats.total_reviews }}</div>
+                <div class="dash-stat-label">总评论</div>
+            </div>
+        </div>
+        <div class="dash-stat-card">
+            <div class="dash-stat-icon">📊</div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-number">{{ stats.avg_user_rating }}</div>
+                <div class="dash-stat-label">用户平均评分</div>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}" style="margin-bottom:16px;">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 用户管理 -->
+    <div class="admin-section">
+        <h2>👥 用户管理</h2>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>状态</th>
+                        <th>注册时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.email or '-' }}</td>
+                        <td>
+                            <span class="role-badge role-{{ u.role }}">
+                                {{ '管理员' if u.role == 'admin' else '用户' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ 'active' if u.is_active else 'inactive' }}">
+                                {{ '正常' if u.is_active else '禁用' }}
+                            </span>
+                        </td>
+                        <td>{{ u.created_at[:10] }}</td>
+                        <td class="admin-actions">
+                            <form method="POST" action="/admin/user/{{ u.id }}/role" style="display:inline;">
+                                <select name="role" onchange="this.form.submit()" class="mini-select">
+                                    <option value="user" {% if u.role == 'user' %}selected{% endif %}>用户</option>
+                                    <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>管理员</option>
+                                </select>
+                            </form>
+                            <form method="POST" action="/admin/user/{{ u.id }}/toggle" style="display:inline;">
+                                <button type="submit" class="mini-btn-admin">
+                                    {{ '禁用' if u.is_active else '启用' }}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 最近评论 -->
+    <div class="admin-section">
+        <h2>💬 最近评论</h2>
+        {% if stats.recent_reviews %}
+        <div class="admin-review-list">
+            {% for r in stats.recent_reviews %}
+            <div class="admin-review-item">
+                <div class="ari-header">
+                    <strong>{{ r.username }}</strong>
+                    <span>→ 电影ID: {{ r.movie_id }}</span>
+                    <span class="ari-date">{{ r.created_at[:16] }}</span>
+                    <form method="POST" action="/admin/review/{{ r.id }}/delete" style="display:inline;">
+                        <button type="submit" class="mini-btn-admin danger" onclick="return confirm('确定删除该评论？')">删除</button>
+                    </form>
+                </div>
+                <p>{{ r.content[:200] }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:#999;">暂无评论</p>
+        {% endif %}
+    </div>
+
+    <!-- 最近注册用户 -->
+    <div class="admin-section">
+        <h2>🆕 最近注册</h2>
+        <div class="admin-table-wrap">
+            <table class="admin-table">
+                <thead><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>注册时间</th></tr></thead>
+                <tbody>
+                    {% for u in stats.recent_users %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.email or '-' }}</td>
+                        <td>{{ u.created_at[:16] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
