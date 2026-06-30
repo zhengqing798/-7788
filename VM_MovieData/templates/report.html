@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}个人观影报告 · {{ user.username }}{% endblock %}
+{% block content %}
+<div class="vreport-page">
+    <!-- 头部 -->
+    <div class="vreport-hero">
+        <div class="vreport-hero-bg"></div>
+        <div class="vreport-hero-content">
+            <div class="vreport-avatar">{{ user.avatar or '👤' }}</div>
+            <h1>{{ user.username }} 的观影报告</h1>
+            <p>记录你的每一次观影足迹</p>
+            <div class="vreport-hero-stats">
+                <div class="vhs-item"><span class="vhs-num">{{ overview.total_ratings }}</span><span class="vhs-lbl">评分</span></div>
+                <div class="vhs-div"></div>
+                <div class="vhs-item"><span class="vhs-num">{{ overview.total_likes }}</span><span class="vhs-lbl">喜欢</span></div>
+                <div class="vhs-div"></div>
+                <div class="vhs-item"><span class="vhs-num">{{ overview.total_favorites }}</span><span class="vhs-lbl">收藏</span></div>
+                <div class="vhs-div"></div>
+                <div class="vhs-item"><span class="vhs-num">{{ overview.total_history }}</span><span class="vhs-lbl">浏览</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤导航 -->
+    <div class="vreport-nav">
+        <span class="vrn-item active" onclick="goReport(0)"><span class="vrn-num">01</span> 总览</span>
+        <span class="vrn-arrow">→</span>
+        <span class="vrn-item" onclick="goReport(1)"><span class="vrn-num">02</span> 评分</span>
+        <span class="vrn-arrow">→</span>
+        <span class="vrn-item" onclick="goReport(2)"><span class="vrn-num">03</span> 类型</span>
+        <span class="vrn-arrow">→</span>
+        <span class="vrn-item" onclick="goReport(3)"><span class="vrn-num">04</span> 年代</span>
+        <span class="vrn-arrow">→</span>
+        <span class="vrn-item" onclick="goReport(4)"><span class="vrn-num">05</span> 影人</span>
+        <span class="vrn-arrow">→</span>
+        <span class="vrn-item" onclick="goReport(5)"><span class="vrn-num">06</span> 国家</span>
+        <span class="vrn-arrow">→</span>
+        <span class="vrn-item" onclick="goReport(6)"><span class="vrn-num">07</span> 最佳</span>
+        <span class="vrn-arrow">→</span>
+        <span class="vrn-item" onclick="goReport(7)"><span class="vrn-num">08</span> 总结</span>
+    </div>
+
+    <!-- 报告卡片容器 -->
+    <div class="vreport-card-wrap">
+
+        <!-- 01 总览 -->
+        <div class="vreport-card active">
+            <div class="vrc-header">📋 观影总览</div>
+            <div class="vrc-overview-grid">
+                <div class="vrc-ov-item"><span class="vrc-ov-icon">⭐</span><span class="vrc-ov-num">{{ overview.total_ratings }}</span><span class="vrc-ov-lbl">部电影评分</span></div>
+                <div class="vrc-ov-item"><span class="vrc-ov-icon">💬</span><span class="vrc-ov-num">{{ overview.total_reviews }}</span><span class="vrc-ov-lbl">条评论</span></div>
+                <div class="vrc-ov-item"><span class="vrc-ov-icon">❤️</span><span class="vrc-ov-num">{{ overview.total_likes }}</span><span class="vrc-ov-lbl">部喜欢</span></div>
+                <div class="vrc-ov-item"><span class="vrc-ov-icon">⭐</span><span class="vrc-ov-num">{{ overview.total_favorites }}</span><span class="vrc-ov-lbl">部收藏</span></div>
+                <div class="vrc-ov-item"><span class="vrc-ov-icon">🎬</span><span class="vrc-ov-num">{{ overview.unique_directors }}</span><span class="vrc-ov-lbl">位导演</span></div>
+                <div class="vrc-ov-item"><span class="vrc-ov-icon">🌟</span><span class="vrc-ov-num">{{ overview.unique_actors }}</span><span class="vrc-ov-lbl">位演员</span></div>
+                <div class="vrc-ov-item"><span class="vrc-ov-icon">📊</span><span class="vrc-ov-num" style="color:#ffd700;">{{ overview.avg_user_rating }}</span><span class="vrc-ov-lbl">我的均分</span></div>
+            </div>
+            <div class="vrc-footer"><button class="vrc-btn next" onclick="goReport(1)">下一项 →</button></div>
+        </div>
+
+        <!-- 02 评分分布 -->
+        <div class="vreport-card">
+            <div class="vrc-header">⭐ 我的评分分布</div>
+            <div id="chart-my-rating" style="width:100%;height:380px;"></div>
+            <div class="vrc-footer">
+                <button class="vrc-btn prev" onclick="goReport(0)">← 上一项</button>
+                <button class="vrc-btn next" onclick="goReport(2)">下一项 →</button>
+            </div>
+        </div>
+
+        <!-- 03 类型 -->
+        <div class="vreport-card">
+            <div class="vrc-header">🎭 最喜欢的电影类型</div>
+            <div id="chart-my-genres" style="width:100%;height:380px;"></div>
+            <div class="vrc-footer">
+                <button class="vrc-btn prev" onclick="goReport(1)">← 上一项</button>
+                <button class="vrc-btn next" onclick="goReport(3)">下一项 →</button>
+            </div>
+        </div>
+
+        <!-- 04 年代 -->
+        <div class="vreport-card">
+            <div class="vrc-header">📅 观影年代分布</div>
+            <div id="chart-my-decades" style="width:100%;height:380px;"></div>
+            <div class="vrc-footer">
+                <button class="vrc-btn prev" onclick="goReport(2)">← 上一项</button>
+                <button class="vrc-btn next" onclick="goReport(4)">下一项 →</button>
+            </div>
+        </div>
+
+        <!-- 05 影人 -->
+        <div class="vreport-card">
+            <div class="vrc-header">🎬🌟 最喜欢的导演 & 演员</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                <div><h4 style="text-align:center;color:var(--text-secondary);margin-bottom:8px;">🎬 导演 Top 10</h4><div id="chart-my-directors" style="width:100%;height:330px;"></div></div>
+                <div><h4 style="text-align:center;color:var(--text-secondary);margin-bottom:8px;">🌟 演员 Top 10</h4><div id="chart-my-actors" style="width:100%;height:330px;"></div></div>
+            </div>
+            <div class="vrc-footer">
+                <button class="vrc-btn prev" onclick="goReport(3)">← 上一项</button>
+                <button class="vrc-btn next" onclick="goReport(5)">下一项 →</button>
+            </div>
+        </div>
+
+        <!-- 06 国家 -->
+        <div class="vreport-card">
+            <div class="vrc-header">🌍 制片国家偏好</div>
+            <div id="chart-my-countries" style="width:100%;height:380px;"></div>
+            <div class="vrc-footer">
+                <button class="vrc-btn prev" onclick="goReport(4)">← 上一项</button>
+                <button class="vrc-btn next" onclick="goReport(6)">下一项 →</button>
+            </div>
+        </div>
+
+        <!-- 07 最佳 -->
+        <div class="vreport-card">
+            <div class="vrc-header">🏆 我评分最高的电影</div>
+            {% if top_movies %}
+            <div class="vrc-movie-grid">
+                {% for m in top_movies[:10] %}
+                <a href="/movie/{{ m.id }}" class="vrc-movie-item">
+                    <div class="vrc-movie-poster">
+                        {% if m.poster %}<img src="{{ url_for('static', filename=m.poster.replace('\\', '/')) }}" alt="{{ m.title }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                        <div class="vrc-movie-noposter" style="display:none;">🎬</div>{% else %}<div class="vrc-movie-noposter">🎬</div>{% endif %}
+                        <span class="vrc-movie-badge">{{ m.score }}⭐</span>
+                    </div>
+                    <span class="vrc-movie-title">{{ m.title }}</span>
+                </a>{% endfor %}
+            </div>
+            {% else %}<div class="empty-state"><p>还没有评分过电影</p></div>{% endif %}
+            <div class="vrc-footer">
+                <button class="vrc-btn prev" onclick="goReport(5)">← 上一项</button>
+                <button class="vrc-btn next" onclick="goReport(7)">下一项 →</button>
+            </div>
+        </div>
+
+        <!-- 08 总结 -->
+        <div class="vreport-card">
+            <div class="vrc-header">✨ 观影总结</div>
+            <div class="vrc-summary">
+                <p>在过去的日子里，你一共为 <b>{{ overview.total_ratings }}</b> 部电影打出了评分</p>
+                <p>看过了 <b>{{ overview.unique_directors }}</b> 位导演和 <b>{{ overview.unique_actors }}</b> 位演员的作品</p>
+                <p>我的平均评分是 <span class="vrc-big-score">{{ overview.avg_user_rating }}</span> 分</p>
+                <p>收藏了 <b>{{ overview.total_favorites }}</b> 部心爱的电影</p>
+                <p>发表了 <b>{{ overview.total_reviews }}</b> 条评论</p>
+                <p class="vrc-ending">🎬 电影不止，观影不停。期待你的下一部好片！</p>
+            </div>
+            <div class="vrc-footer">
+                <button class="vrc-btn prev" onclick="goReport(6)">← 上一项</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+var reportIdx = 0;
+var slides = document.querySelectorAll('.vreport-card');
+var navItems = document.querySelectorAll('.vrn-item');
+var chartsInited = {};
+
+function goReport(i) {
+    slides[reportIdx].classList.remove('active');
+    navItems[reportIdx].classList.remove('active');
+    reportIdx = i;
+    slides[reportIdx].classList.add('active');
+    navItems[reportIdx].classList.add('active');
+    slides[reportIdx].scrollIntoView({behavior:'smooth',block:'start'});
+    initChart(i);
+}
+
+function initChart(i) {
+    if (chartsInited[i]) return;
+    chartsInited[i] = true;
+    if (i===1) initRatingChart();
+    if (i===2) initGenreChart();
+    if (i===3) initDecadeChart();
+    if (i===4) { initDirectorChart(); initActorChart(); }
+    if (i===5) initCountryChart();
+}
+
+function echartsInit(id) { var d=document.getElementById(id); return d ? echarts.init(d,'dark') : null; }
+
+function initRatingChart() {
+    var c=echartsInit('chart-my-rating'); if(!c) return;
+    var data={{ rating_dist|tojson }};
+    c.setOption({tooltip:{trigger:'axis'},grid:{left:'8%',right:'8%',bottom:'8%',top:'5%'},xAxis:{data:data.labels,axisLabel:{fontSize:10}},yAxis:{name:'部'},series:[{type:'bar',data:data.values,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#ffd700'},{offset:1,color:'#b8860b'}]),borderRadius:[6,6,0,0]}}]});
+}
+function initGenreChart() {
+    var c=echartsInit('chart-my-genres'); if(!c) return;
+    var data={{ genre_data|tojson }};
+    var l=data.labels.reverse(), v=data.values.reverse();
+    c.setOption({tooltip:{trigger:'axis'},grid:{left:'15%',right:'10%'},xAxis:{type:'value'},yAxis:{type:'category',data:l,axisLabel:{fontSize:10},inverse:true},series:[{type:'bar',data:v,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#4a9eff'},{offset:1,color:'#1a3a5c'}]),borderRadius:[0,6,6,0]},label:{show:true,position:'right',fontSize:10}}]});
+}
+function initDecadeChart() {
+    var c=echartsInit('chart-my-decades'); if(!c) return;
+    var data={{ decade_data|tojson }};
+    c.setOption({tooltip:{trigger:'axis'},legend:{data:['数量','均分'],top:5,textStyle:{color:'#e5e5e5'}},grid:{left:'8%',right:'8%',bottom:'8%',top:'15%'},xAxis:{data:data.labels,axisLabel:{rotate:30,fontSize:10}},yAxis:[{type:'value',name:'数量'},{type:'value',name:'均分',min:0,max:10}],series:[{name:'数量',type:'bar',yAxisIndex:0,data:data.counts,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#46d369'},{offset:1,color:'#0f2f17'}]),borderRadius:[4,4,0,0]}},{name:'均分',type:'line',yAxisIndex:1,data:data.ratings,lineStyle:{color:'#ffd700',width:2},itemStyle:{color:'#ffd700'},symbol:'circle',symbolSize:4}]});
+}
+function initDirectorChart() {
+    var c=echartsInit('chart-my-directors'); if(!c) return;
+    var data={{ director_top|tojson }};
+    var l=data.labels.reverse(), v=data.values.reverse();
+    c.setOption({tooltip:{trigger:'axis'},grid:{left:'15%',right:'10%'},xAxis:{type:'value'},yAxis:{type:'category',data:l,axisLabel:{fontSize:9},inverse:true},series:[{type:'bar',data:v,itemStyle:{color:'#845ef7',borderRadius:[0,6,6,0]},label:{show:true,position:'right',fontSize:9}}]});
+}
+function initActorChart() {
+    var c=echartsInit('chart-my-actors'); if(!c) return;
+    var data={{ actor_top|tojson }};
+    var l=data.labels.reverse(), v=data.values.reverse();
+    c.setOption({tooltip:{trigger:'axis'},grid:{left:'15%',right:'10%'},xAxis:{type:'value'},yAxis:{type:'category',data:l,axisLabel:{fontSize:9},inverse:true},series:[{type:'bar',data:v,itemStyle:{color:'#20c997',borderRadius:[0,6,6,0]},label:{show:true,position:'right',fontSize:9}}]});
+}
+function initCountryChart() {
+    var c=echartsInit('chart-my-countries'); if(!c) return;
+    var data={{ country_data|tojson }};
+    c.setOption({tooltip:{trigger:'item',formatter:'{b}: {c}部 ({d}%)'},series:[{type:'pie',radius:['45%','75%'],center:['50%','55%'],itemStyle:{borderRadius:6,borderColor:'#141414',borderWidth:3},label:{fontSize:10},data:data.labels.map((l,i)=>({name:l,value:data.values[i]}))}],color:['#e50914','#4a9eff','#46d369','#ffd700','#ff6b6b','#845ef7','#20c997','#f06595','#339af0','#ff922b']});
+}
+</script>
+{% endblock %}

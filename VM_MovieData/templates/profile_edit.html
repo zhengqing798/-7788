@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}编辑资料{% endblock %}
+{% block content %}
+<div style="max-width:500px;margin:40px auto;padding:24px;">
+    <h2 style="margin-bottom:20px;">✏️ 编辑资料</h2>
+    <form method="POST" style="display:flex;flex-direction:column;gap:16px;">
+        <div>
+            <label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:4px;">用户名</label>
+            <input type="text" name="username" value="{{ user.username }}" required
+                   style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:15px;">
+        </div>
+        <div>
+            <label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:4px;">邮箱</label>
+            <input type="email" name="email" value="{{ user.email or '' }}"
+                   style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:15px;">
+        </div>
+        <div>
+            <label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:8px;">选择头像</label>
+            <div id="avatarPicker" style="display:flex;flex-wrap:wrap;gap:10px;">
+                {% set avatars = ['👤','👨','👩','🧑','👦','👧','🎬','🌟','🎥','🎭','🍿','🎞️','💎','🔥','⭐','🎯','🦸','🧙','👑','🤖'] %}
+                {% for a in avatars %}
+                <span class="avatar-option" onclick="pickAvatar('{{ a }}', this)"
+                      style="font-size:28px;cursor:pointer;padding:6px;border-radius:50%;border:2px solid transparent;">{{ a }}</span>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="avatar" id="avatarInput" value="{{ user.avatar or '👤' }}">
+        </div>
+        <button type="submit"
+                style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">
+            💾 保存修改
+        </button>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function pickAvatar(emoji, el) {
+    document.getElementById('avatarInput').value = emoji;
+    document.querySelectorAll('.avatar-option').forEach(e => e.style.borderColor = 'transparent');
+    el.style.borderColor = 'var(--accent)';
+}
+// 初始化选中当前头像
+(function() {
+    var cur = '{{ user.avatar or "👤" }}';
+    document.querySelectorAll('.avatar-option').forEach(el => {
+        if (el.textContent.trim() === cur) el.style.borderColor = 'var(--accent)';
+    });
+})();
+</script>
+{% endblock %}

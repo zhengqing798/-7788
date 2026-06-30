@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}个人中心 - {{ user.username }}{% endblock %}
+{% block content %}
+<div class="profile-page">
+    <div class="profile-header">
+        <div class="profile-avatar"><span>{{ user.avatar or '👤' }}</span></div>
+        <div class="profile-info">
+            <h1>{{ user.username }}
+                <a href="/profile/edit" style="font-size:14px;color:var(--text-secondary);text-decoration:none;margin-left:8px;">✏️</a>
+            </h1>
+            <p>{{ user.email or '未设置邮箱' }} | {{ user.role == 'admin' and '👑 管理员' or '🎬 用户' }}</p>
+            <p class="profile-date">注册时间：{{ user.created_at }}</p>
+        </div>
+        <div class="profile-stats">
+            <div class="profile-stat"><span class="ps-number">{{ stats.rating_count }}</span><span class="ps-label">评分</span></div>
+            <div class="profile-stat"><span class="ps-number">{{ stats.review_count }}</span><span class="ps-label">评论</span></div>
+            <div class="profile-stat"><span class="ps-number">{{ stats.like_count }}</span><span class="ps-label">喜欢</span></div>
+            <div class="profile-stat"><span class="ps-number">{{ stats.fav_count }}</span><span class="ps-label">收藏</span></div>
+        </div>
+    </div>
+
+    <div class="tab-nav">
+        <span class="tab-item active" onclick="switchTab('ratings')">⭐ 评分 ({{ ratings|length }})</span>
+        <span class="tab-item" onclick="switchTab('reviews')">💬 评论 ({{ reviews|length }})</span>
+        <span class="tab-item" onclick="switchTab('likes')">❤️ 喜欢 ({{ likes|length }})</span>
+        <span class="tab-item" onclick="switchTab('favorites')">⭐ 收藏 ({{ favorites|length }})</span>
+        <span class="tab-item" onclick="switchTab('history')">🕐 历史 ({{ history|length }})</span>
+        <span class="tab-item" onclick="switchTab('liked-dir')">🎬 喜欢导演 ({{ liked_directors|length }})</span>
+        <span class="tab-item" onclick="switchTab('liked-act')">🌟 喜欢演员 ({{ liked_actors|length }})</span>
+    </div>
+
+    <!-- 评分 -->
+    <div class="tab-panel active" id="panel-ratings">
+        {% if ratings %}
+        <div class="profile-movie-grid">
+            {% for r in ratings %}
+            <div class="profile-movie-card">
+                <a href="/movie/{{ r.movie_id }}" class="pmc-poster">
+                    {% if r.poster %}<img src="{{ url_for('static', filename=r.poster.replace('\\', '/')) }}" alt="{{ r.movie_title }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="pmc-no-poster" style="display:none;">🎬</div>{% else %}<div class="pmc-no-poster">🎬</div>{% endif %}
+                    <span class="pmc-rating">{{ r.score }}⭐</span>
+                </a>
+                <div class="pmc-info">
+                    <a href="/movie/{{ r.movie_id }}" class="pmc-title">{{ r.movie_title }}</a>
+                    <span class="pmc-date">{{ r.updated_at[:10] }}</span>
+                </div>
+                <button class="pmc-delete" onclick="event.stopPropagation();doDelete('rating','{{ r.movie_id }}')" title="删除">✕</button>
+            </div>{% endfor %}
+        </div>{% else %}<div class="empty-state"><p>还没有评分过电影</p></div>{% endif %}
+    </div>
+
+    <!-- 评论 -->
+    <div class="tab-panel" id="panel-reviews">
+        {% if reviews %}
+        <div class="profile-reviews">
+            {% for r in reviews %}
+            <div class="profile-review-card">
+                <div class="prc-header">
+                    <a href="/movie/{{ r.movie_id }}" class="prc-movie">{{ r.movie_title }}</a>
+                    <div class="prc-actions">
+                        <span class="prc-date">{{ r.created_at[:16] }}</span>
+                        <button class="review-delete-btn" onclick="doDelete('review',{{ r.id }})" title="删除">✕</button>
+                    </div>
+                </div>
+                <p class="prc-content">{{ r.content }}</p>
+            </div>{% endfor %}
+        </div>{% else %}<div class="empty-state"><p>还没有发表过评论</p></div>{% endif %}
+    </div>
+
+    <!-- 喜欢 -->
+    <div class="tab-panel" id="panel-likes">
+        {% if likes %}
+        <div class="profile-movie-grid">
+            {% for item in likes %}
+            <div class="profile-movie-card">
+                <a href="/movie/{{ item.movie_id }}" class="pmc-poster">
+                    {% if item.poster %}<img src="{{ url_for('static', filename=item.poster.replace('\\', '/')) }}" alt="{{ item.movie_title }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="pmc-no-poster" style="display:none;">🎬</div>{% else %}<div class="pmc-no-poster">🎬</div>{% endif %}
+                </a>
+                <div class="pmc-info">
+                    <a href="/movie/{{ item.movie_id }}" class="pmc-title">{{ item.movie_title }}</a>
+                    <span class="pmc-date">{{ item.created_at[:10] }}</span>
+                </div>
+                <button class="pmc-delete" onclick="event.stopPropagation();doDelete('like','{{ item.movie_id }}')" title="取消喜欢">✕</button>
+            </div>{% endfor %}
+        </div>{% else %}<div class="empty-state"><p>还没有喜欢过电影</p></div>{% endif %}
+    </div>
+
+    <!-- 收藏 -->
+    <div class="tab-panel" id="panel-favorites">
+        {% if favorites %}
+        <div class="profile-movie-grid">
+            {% for item in favorites %}
+            <div class="profile-movie-card">
+                <a href="/movie/{{ item.movie_id }}" class="pmc-poster">
+                    {% if item.poster %}<img src="{{ url_for('static', filename=item.poster.replace('\\', '/')) }}" alt="{{ item.movie_title }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="pmc-no-poster" style="display:none;">🎬</div>{% else %}<div class="pmc-no-poster">🎬</div>{% endif %}
+                </a>
+                <div class="pmc-info">
+                    <a href="/movie/{{ item.movie_id }}" class="pmc-title">{{ item.movie_title }}</a>
+                    <span class="pmc-date">{{ item.created_at[:10] }}</span>
+                </div>
+                <button class="pmc-delete" onclick="event.stopPropagation();doDelete('fav','{{ item.movie_id }}')" title="取消收藏">✕</button>
+            </div>{% endfor %}
+        </div>{% else %}<div class="empty-state"><p>还没有收藏过电影</p></div>{% endif %}
+    </div>
+
+    <!-- 浏览历史 -->
+    <div class="tab-panel" id="panel-history">
+        {% if history %}
+        <div class="profile-movie-grid">
+            {% for item in history %}
+            <div class="profile-movie-card">
+                <a href="/movie/{{ item.movie_id }}" class="pmc-poster">
+                    {% if item.poster %}<img src="{{ url_for('static', filename=item.poster.replace('\\', '/')) }}" alt="{{ item.movie_title }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="pmc-no-poster" style="display:none;">🎬</div>{% else %}<div class="pmc-no-poster">🎬</div>{% endif %}
+                </a>
+                <div class="pmc-info">
+                    <a href="/movie/{{ item.movie_id }}" class="pmc-title">{{ item.movie_title }}</a>
+                    <span class="pmc-date">{{ item.viewed_at[:16] }}</span>
+                </div>
+                <button class="pmc-delete" onclick="event.stopPropagation();doDelete('history',{{ item.id }})" title="删除">✕</button>
+            </div>{% endfor %}
+        </div>{% else %}<div class="empty-state"><p>还没有浏览过电影</p></div>{% endif %}
+    </div>
+
+    <!-- 喜欢的导演 -->
+    <div class="tab-panel" id="panel-liked-dir">
+        <h2 class="section-title">🎬 我喜欢的导演 ({{ liked_directors|length }})</h2>
+        {% if liked_directors %}
+        <div class="profile-person-grid">
+            {% for p in liked_directors %}
+            <div class="profile-person-card" onclick="location.href='/person?name={{ p.person_name|urlencode }}&type=director'">
+                <div class="ppc-avatar">
+                    {% if p.avatar %}<img src="{{ url_for('static', filename=p.avatar) }}" alt="{{ p.person_name }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="ppc-placeholder" style="display:none;">🎬</span>{% else %}<span class="ppc-placeholder">🎬</span>{% endif %}
+                </div>
+                <div class="ppc-info">
+                    <span class="ppc-name">{{ p.person_name }}</span>
+                    {% if p.name_en %}<span class="ppc-name-en">{{ p.name_en }}</span>{% endif %}
+                </div>
+                <button class="pmc-delete" onclick="event.stopPropagation();doDelete('person','{{ p.person_name }}','director')" title="取消喜欢">✕</button>
+            </div>{% endfor %}
+        </div>{% else %}<div class="empty-state"><p>还没有喜欢过导演</p></div>{% endif %}
+    </div>
+
+    <!-- 喜欢的演员 -->
+    <div class="tab-panel" id="panel-liked-act">
+        <h2 class="section-title">🌟 我喜欢的演员 ({{ liked_actors|length }})</h2>
+        {% if liked_actors %}
+        <div class="profile-person-grid">
+            {% for p in liked_actors %}
+            <div class="profile-person-card" onclick="location.href='/person?name={{ p.person_name|urlencode }}&type=actor'">
+                <div class="ppc-avatar">
+                    {% if p.avatar %}<img src="{{ url_for('static', filename=p.avatar) }}" alt="{{ p.person_name }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="ppc-placeholder" style="display:none;">🌟</span>{% else %}<span class="ppc-placeholder">🌟</span>{% endif %}
+                </div>
+                <div class="ppc-info">
+                    <span class="ppc-name">{{ p.person_name }}</span>
+                    {% if p.name_en %}<span class="ppc-name-en">{{ p.name_en }}</span>{% endif %}
+                </div>
+                <button class="pmc-delete" onclick="event.stopPropagation();doDelete('person','{{ p.person_name }}','actor')" title="取消喜欢">✕</button>
+            </div>{% endfor %}
+        </div>{% else %}<div class="empty-state"><p>还没有喜欢过演员</p></div>{% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(name) {
+    document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+    var map = {ratings:'评分',reviews:'评论',likes:'喜欢',favorites:'收藏',history:'历史','liked-dir':'喜欢导演','liked-act':'喜欢演员'};
+    document.querySelectorAll('.tab-item').forEach(el => { if(el.textContent.includes(map[name])) el.classList.add('active'); });
+    document.getElementById('panel-'+name).classList.add('active');
+}
+
+async function doDelete(type, id, extra) {
+    if(!confirm('确定删除？')) return;
+    try{
+        var r;
+        if(type==='rating'){
+            r = await fetch('/api/rating/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({movie_id:id})});
+        }else if(type==='review'){
+            r = await fetch('/api/review/'+id+'/delete', {method:'POST'});
+        }else if(type==='like'){
+            r = await fetch('/api/like', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({movie_id:id})});
+        }else if(type==='fav'){
+            r = await fetch('/api/favorite', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({movie_id:id})});
+        }else if(type==='history'){
+            r = await fetch('/api/history/delete/'+id, {method:'POST'});
+        }else if(type==='person'){
+            r = await fetch('/api/person/like', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_name:id,person_type:extra})});
+        }
+        var d = await r.json();
+        if(d.success) location.reload(); else alert(d.error||'失败');
+    }catch(e){alert('网络错误: '+e.message);}
+}
+</script>
+{% endblock %}

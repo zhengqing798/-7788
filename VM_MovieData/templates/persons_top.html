@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}🌟 人物排行榜{% endblock %}
+
+{% block content %}
+<div class="top-page">
+    <div class="top-header">
+        <h1>🌟 人物排行榜</h1>
+        <p>作品数量排行 · 作品评分排行 · Top 10</p>
+    </div>
+
+    <div class="top-tab-bar" id="personTabBar">
+        <span class="genre-tab active" onclick="switchTab('dir-count')">🎬 导演作品数</span>
+        <span class="genre-tab" onclick="switchTab('dir-rating')">🎬 导演评分</span>
+        <span class="genre-tab" onclick="switchTab('act-count')">🌟 演员作品数</span>
+        <span class="genre-tab" onclick="switchTab('act-rating')">🌟 演员评分</span>
+    </div>
+
+    {% macro person_list(ranking) %}
+    <div class="top-list">
+        {% for p in ranking %}
+        <div class="person-rank-item" onclick="location.href='/person?name={{ p.name|urlencode }}&type={% if 'dir' in tab_id %}director{% else %}actor{% endif %}'">
+            <div class="top-rank">
+                {% if loop.index == 1 %}🥇
+                {% elif loop.index == 2 %}🥈
+                {% elif loop.index == 3 %}🥉
+                {% else %}{{ loop.index }}{% endif %}
+            </div>
+            <div class="pri-avatar">
+                {% if p.avatar %}
+                <img src="{{ url_for('static', filename=p.avatar) }}" alt="{{ p.name }}" loading="lazy"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <span class="pri-avatar-placeholder" style="display:none;">🎬</span>
+                {% else %}
+                <span class="pri-avatar-placeholder">🎬</span>
+                {% endif %}
+            </div>
+            <div class="top-info">
+                <h3>{{ p.name }}</h3>
+                {% if p.name_en %}<p class="top-meta">{{ p.name_en }}</p>{% endif %}
+                {% if p.profession %}<p class="top-genre">{{ p.profession }}</p>{% endif %}
+            </div>
+            <div class="pri-count">
+                <span class="pri-count-num">{{ p.avg_rating }}</span>
+                <span class="pri-count-label">均分</span>
+            </div>
+            <div class="pri-count">
+                <span class="pri-count-num">{{ p.count }}</span>
+                <span class="pri-count-label">部</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endmacro %}
+
+    {% set tab_id = 'dir-count' %}
+    <div class="person-rank-panel active" id="panel-dir-count">
+        <h2 class="top-genre-title">🎬 导演 · 作品数量 Top 10</h2>
+        {{ person_list(director_by_count) }}
+    </div>
+
+    <div class="person-rank-panel" id="panel-dir-rating">
+        <h2 class="top-genre-title">🎬 导演 · 作品均分 Top 10（≥3部）</h2>
+        {% with tab_id = 'dir-rating' %}
+        {{ person_list(director_by_rating) }}
+        {% endwith %}
+    </div>
+
+    <div class="person-rank-panel" id="panel-act-count">
+        <h2 class="top-genre-title">🌟 演员 · 作品数量 Top 10</h2>
+        {% with tab_id = 'act-count' %}
+        {{ person_list(actor_by_count) }}
+        {% endwith %}
+    </div>
+
+    <div class="person-rank-panel" id="panel-act-rating">
+        <h2 class="top-genre-title">🌟 演员 · 作品均分 Top 10（≥3部）</h2>
+        {% with tab_id = 'act-rating' %}
+        {{ person_list(actor_by_rating) }}
+        {% endwith %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchTab(name) {
+    document.querySelectorAll('#personTabBar .genre-tab').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.person-rank-panel').forEach(el => el.classList.remove('active'));
+    var map = {'dir-count':0,'dir-rating':1,'act-count':2,'act-rating':3};
+    document.querySelectorAll('#personTabBar .genre-tab').forEach((el,i) => {
+        if (i === map[name]) el.classList.add('active');
+    });
+    document.getElementById('panel-' + name).classList.add('active');
+}
+</script>
+{% endblock %}

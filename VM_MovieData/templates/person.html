@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} - {% if ptype == 'director' %}导演{% else %}演员{% endif %}作品{% endblock %}
+
+{% block content %}
+<div class="person-page">
+    <div class="breadcrumb">
+        <a href="/">首页</a> <span>›</span>
+        <span>{{ name }}</span>
+    </div>
+
+    <div class="person-header">
+        <!-- 头像框 -->
+        <div class="person-avatar-wrap">
+            {% if person_info and person_info.avatar_local_path %}
+            <img class="person-avatar-img"
+                 src="{{ url_for('static', filename=person_info.avatar_local_path) }}"
+                 alt="{{ name }}" loading="lazy"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div class="person-avatar-placeholder" style="display:none;">
+                <span>暂无头像</span>
+            </div>
+            {% else %}
+            <div class="person-avatar-placeholder">
+                <span>暂无头像</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 基本信息 -->
+        <div class="person-info">
+            <div class="person-name-row">
+                <h1 class="person-name">{{ name }}</h1>
+                {% if user %}
+                <button id="btnLikePerson" class="person-like-btn {{ 'liked' if is_liked_person else '' }}"
+                        onclick="togglePersonLike()"
+                        data-name="{{ name }}"
+                        data-type="{{ primary_type }}">
+                    {{ '❤️' if is_liked_person else '🤍' }}
+                </button>
+                {% endif %}
+            </div>
+            {% if person_info and person_info.name_en %}
+            <p class="person-name-en">{{ person_info.name_en }}</p>
+            {% endif %}
+
+            <p class="person-role">
+                <span class="person-type-badge {{ 'director' if ptype == 'director' else 'actor' }}">
+                    {{ '🎬 导演' if ptype == 'director' else '🌟 演员' }}
+                </span>
+                <span class="person-count">共 {{ total }} 部作品</span>
+            </p>
+
+            {% if person_info %}
+            <ul class="person-details">
+                {% if person_info.gender %}
+                <li><span class="detail-label">性别</span><span class="detail-value">{{ person_info.gender }}</span></li>
+                {% endif %}
+                {% if person_info.birth_date %}
+                <li><span class="detail-label">出生日期</span><span class="detail-value">{{ person_info.birth_date }}</span></li>
+                {% endif %}
+                {% if person_info.birthplace %}
+                <li><span class="detail-label">出生地</span><span class="detail-value">{{ person_info.birthplace }}</span></li>
+                {% endif %}
+                {% if person_info.profession %}
+                <li><span class="detail-label">职业</span><span class="detail-value">{{ person_info.profession }}</span></li>
+                {% endif %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if person_info and person_info.biography %}
+    <div class="person-bio">
+        <h3>📖 个人简介</h3>
+        <p>{{ person_info.biography }}</p>
+    </div>
+    {% endif %}
+
+    {% if collab_data %}
+    <div class="person-bio">
+        <h3>🤝 猜你也想看 · 合作最多的影人</h3>
+        <div class="collab-grid">
+            {% for c in collab_data %}
+            <div class="collab-card" onclick="location.href='/person?name={{ c.name|urlencode }}&type={% if '导演' in (c.profession or '') %}director{% else %}actor{% endif %}'">
+                <div class="collab-avatar">
+                    {% if c.avatar %}
+                    <img src="{{ url_for('static', filename=c.avatar) }}" alt="{{ c.name }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="collab-placeholder" style="display:none;">👤</span>
+                    {% else %}<span class="collab-placeholder">👤</span>{% endif %}
+                </div>
+                <span class="collab-name">{{ c.name }}</span>
+                <span class="collab-count">🤝 {{ c.count }}次</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if movies %}
+    <h3>🎥 作品列表</h3>
+    <div class="person-movies-grid">
+        {% for movie in movies %}
+        <a href="/movie/{{ movie.id }}" class="movie-card-link">
+            <div class="movie-card">
+                <div class="movie-poster">
+                    {% if movie.poster_local_path %}
+                    <img src="{{ url_for('static', filename=movie.poster_local_path.replace('\\', '/')) }}"
+                         alt="{{ movie.title }}" loading="lazy"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="no-poster" style="display:none;">🎬</div>
+                    {% else %}
+                    <div class="no-poster">🎬</div>
+                    {% endif %}
+                    <div class="movie-rating-badge">{{ "%.1f"|format(movie.rating) if movie.rating else 'N/A' }}</div>
+                </div>
+                <div class="movie-info">
+                    <h3 class="movie-title">{{ movie.title }}</h3>
+                    <p class="movie-meta-small">{{ movie.genre[:30] }}</p>
+                    <p class="movie-meta-small">{{ movie.release_date[:10] if movie.release_date else '' }}</p>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="person-empty">
+        <p>😕 未找到 {{ name }} 的相关作品</p>
+        <a href="javascript:history.back()" class="action-btn">← 返回</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function togglePersonLike() {
+    const btn = document.getElementById('btnLikePerson');
+    const name = btn.dataset.name;
+    const type = btn.dataset.type;
+    try {
+        const res = await fetch('/api/person/like', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({person_name: name, person_type: type})
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.classList.toggle('liked', data.is_liked);
+            btn.textContent = data.is_liked ? '❤️' : '🤍';
+        }
+    } catch (err) { console.error(err); }
+}
+</script>
+{% endblock %}

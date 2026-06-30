@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hero-detail-page">
+    <div class="hero-detail-banner" style="background:linear-gradient(135deg,var(--bg-card),var(--bg-hover));">
+        <h1>{{ title }}</h1>
+        <p>{{ subtitle }}</p>
+    </div>
+
+    {% if item_type == 'movie' %}
+    <div class="profile-movie-grid">
+        {% for m in items %}
+        <a href="/movie/{{ m.id }}" class="profile-movie-card">
+            <div class="pmc-poster">
+                {% if m.poster_local_path %}
+                <img src="{{ url_for('static', filename=m.poster_local_path.replace('\\', '/')) }}" alt="{{ m.title }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="pmc-no-poster" style="display:none;">🎬</div>{% else %}<div class="pmc-no-poster">🎬</div>{% endif %}
+                <span class="pmc-rating">{{ "%.1f"|format(m.rating) }}</span>
+            </div>
+            <div class="pmc-info">
+                <span class="pmc-title">{{ m.title }}</span>
+                <span class="pmc-date">{{ m.genre[:30] if m.genre else '' }}</span>
+            </div>
+        </a>{% endfor %}
+    </div>
+    {% else %}
+    <div class="profile-person-grid" style="padding:24px;">
+        {% for p in items %}
+        <div class="profile-person-card" onclick="location.href='/person?name={{ p.name|urlencode }}&type={{ item_type }}'">
+            <div class="ppc-avatar">
+                {% if p.avatar %}
+                <img src="{{ url_for('static', filename=p.avatar) }}" alt="{{ p.name }}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <span class="ppc-placeholder" style="display:none;">{% if item_type == 'actor' %}🌟{% else %}🎬{% endif %}</span>
+                {% else %}<span class="ppc-placeholder">{% if item_type == 'actor' %}🌟{% else %}🎬{% endif %}</span>{% endif %}
+            </div>
+            <span class="ppc-name">{{ p.name }}</span>
+            {% if p.profession %}<span class="ppc-name-en">{{ p.profession[:30] }}</span>{% endif %}
+        </div>{% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
